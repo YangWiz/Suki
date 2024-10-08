@@ -1,0 +1,54 @@
+program = _{ SOI ~ "\n"* ~ (statement ~ "\n"+)* ~ statement? ~ EOI }
+
+WHITESPACE = _{ " " | "\t" }
+
+integer = @{ ASCII_DIGIT+ }
+
+const = { integer }
+
+ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_" | ASCII_ALPHA)* }
+
+qualified_name = { ident ~ ("." ~ ident)* }
+
+type_declaration = { (unuaryop_keyword ~ (modifier | lifttime)?)? ~ qualified_name ~ type_params? }
+
+modifier = { "mut" }
+
+type_params = { "<" ~ ((lifttime | ident) ~ ("," ~ (lifttime | ident))*) ~ ">" }
+
+expr_list = { (expression ~ ("," ~ expression)*) }
+
+params_list = { (param_pair ~ ("," ~ param_pair)*) }
+
+param_pair = { qualified_name ~ ":" ~ type_declaration }
+
+lifttime = { "'" ~ ident }
+
+statement = {
+    | definition ~ ";"
+    | declaration ~ ";"
+    | block ~ ";"?
+    | expression ~ ";"
+}
+
+expression = { binop | unuaryop | function_call | qualified_name | const }
+
+primary_expression = { unuaryop | function_call | qualified_name | const } // To avoid left recursive loop.
+
+binop = { primary_expression ~ (binop_keyword ~ (primary_expression | binop))* }
+
+unuaryop = _{ unuaryop_keyword ~ expression }
+
+unuaryop_keyword = { "!" | "~" | "-" | "&" }
+
+binop_keyword = {
+    "<=" | ">=" | "<<" | ">>" | "==" | "!=" | "+" | "-" | "*" | "/" | "&" | "|" | "^" | "<" | ">"
+}
+
+declaration = { "let" ~ qualified_name ~ ":" ~ type_declaration ~ "=" ~ expression }
+
+block = { "{" ~ "\n"* ~ (statement ~ "\n"*)* ~ "}" }
+
+function_call = { qualified_name ~ "(" ~ expr_list ~ ")" }
+
+definition = { "fn" ~ qualified_name ~ type_params ~ "(" ~ params_list ~ ")" ~ "->" ~ type_declaration ~ block }
